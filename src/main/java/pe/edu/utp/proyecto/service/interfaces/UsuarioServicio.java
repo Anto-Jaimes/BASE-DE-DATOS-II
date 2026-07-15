@@ -16,4 +16,6 @@ public interface UsuarioServicio {
     Usuario actualizar(String id , Usuario o);
     /** Elimina un usuario por su identificador */
     void eliminar(String id);
+    /** Busca un usuario por su DNI */
+    Usuario buscarPorDni(String dni);
 }

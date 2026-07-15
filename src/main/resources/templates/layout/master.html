@@ -144,6 +144,11 @@
         body.light-mode .text-white-50 {
             color: var(--text-muted) !important;
         }
+        body.light-mode .text-neon-cyan, body.light-mode .text-info {
+            color: #0284c7 !important;
+            text-shadow: none;
+            font-weight: 700;
+        }
         body.light-mode .bg-dark {
             background-color: #f8fafc !important;
             border-color: #cbd5e1 !important;
@@ -214,10 +219,12 @@
             if (!btn || !icon || !text) return;
 
             if (savedTheme === 'light') {
+                document.documentElement.setAttribute('data-bs-theme', 'light');
                 body.classList.add('light-mode');
                 icon.className = 'bi bi-moon-fill';
                 text.innerText = 'Modo Oscuro';
             } else {
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
                 body.classList.remove('light-mode');
                 icon.className = 'bi bi-sun-fill';
                 text.innerText = 'Modo Claro';

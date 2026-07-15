@@ -30,27 +30,7 @@ public class PartidoController {
         this.usuarioRepo = usuarioRepo;
     }
 
-    @GetMapping
-    public String listar(Model model) {
-        model.addAttribute("partidos", servicio.listar());
-        return "partidos/lista";
-    }
 
-    @GetMapping("/nueva")
-    public String nueva(Model model) {
-        model.addAttribute("partido", new Partido());
-        return "partidos/form";
-    }
-
-    @PostMapping("/guardar")
-    public String guardar(@ModelAttribute Partido partidoDesdeFormulario) {
-
-        if (partidoDesdeFormulario.getDeporte() == null || partidoDesdeFormulario.getDeporte().isEmpty()) {
-            partidoDesdeFormulario.setDeporte("Fútbol");
-        }
-        servicio.guardar(partidoDesdeFormulario);
-        return "redirect:/partidos";
-    }
 
     @GetMapping("/api/{id}")
     @ResponseBody
@@ -77,15 +57,17 @@ public class PartidoController {
             @RequestParam String equipo1,
             @RequestParam String equipo2,
             @RequestParam Double cuotaEquipo1,
-            @RequestParam Double cuotaEmpate,
+            @RequestParam(required = false, defaultValue = "0.0") Double cuotaEmpate,
             @RequestParam Double cuotaEquipo2,
             @RequestParam(required = false) Integer golesEquipo1,
             @RequestParam(required = false) Integer golesEquipo2,
             @RequestParam(required = false) String ganador,
+            @RequestParam(required = false) String fecha,
+            @RequestParam(required = false) String estadio,
             HttpSession session) {
         Partido partido = servicio.buscarPorId(partidoId);
         if (partido == null) {
-            return "redirect:/?error=partido_no_encontrado";
+            return "redirect:/?tab=3&error=partido_no_encontrado";
         }
 
         Usuario usuarioLogueado = (Usuario) session.getAttribute("usuarioLogueado");
@@ -97,6 +79,8 @@ public class PartidoController {
         partido.setCuotaEquipo2(cuotaEquipo2);
         partido.setGolesEquipo1(golesEquipo1);
         partido.setGolesEquipo2(golesEquipo2);
+        if (fecha != null && !fecha.isEmpty()) partido.setFecha(fecha);
+        if (estadio != null && !estadio.isEmpty()) partido.setEstadio(estadio);
 
         String ganadorDeterminado = ganador;
         // Si no mandaron ganador explicitamente pero hay goles definidos
@@ -125,7 +109,7 @@ public class PartidoController {
             session.setAttribute("usuarioLogueado", usuarioLogueado);
         }
 
-        return "redirect:/?success=partido_resuelto";
+        return "redirect:/?tab=3&success=partido_resuelto";
     }
 
     private void avanzarGanadorAlSiguientePartido(Partido partidoActual, String ganadorSeleccionado, HttpSession session, Usuario usuarioLogueado) {
@@ -211,8 +195,8 @@ public class PartidoController {
         partido.setGanador(ganadorResultado);
         servicio.actualizar(partido.getId(), partido);
         List<Apuesta> apuestas = apuestaRepo.findAll().stream()
-                .filter(a -> a.getPartido().getId().equals(partido.getId()))
-                .filter(a -> "PENDIENTE".equalsIgnoreCase(a.getEstado()))
+                .filter(a -> a.getPartido() != null && a.getPartido().getId().equals(partido.getId()))
+                .filter(a -> "PENDIENTE".equalsIgnoreCase(a.getEstado()) || "EN PROCESO".equalsIgnoreCase(a.getEstado()))
                 .toList();
 
         for (Apuesta apuesta : apuestas) {
@@ -222,24 +206,28 @@ public class PartidoController {
                 double gananciaNeta = gananciaBruta - apuesta.getMonto();
                 apuesta.setGanancia(gananciaBruta);
 
-                Usuario user = usuarioRepo.findById(apuesta.getUsuario().getId()).orElse(null);
-                if (user != null) {
-                    user.setSaldo(user.getSaldo() + gananciaNeta);
-                    usuarioRepo.save(user);
-                    if (usuarioLogueado != null && user.getId().equals(usuarioLogueado.getId())) {
-                        usuarioLogueado.setSaldo(user.getSaldo());
+                if (apuesta.getUsuario() != null) {
+                    Usuario user = usuarioRepo.findById(apuesta.getUsuario().getId()).orElse(null);
+                    if (user != null) {
+                        user.setSaldo(user.getSaldo() + gananciaNeta);
+                        usuarioRepo.save(user);
+                        if (usuarioLogueado != null && user.getId().equals(usuarioLogueado.getId())) {
+                            usuarioLogueado.setSaldo(user.getSaldo());
+                        }
                     }
                 }
             } else {
                 apuesta.setEstado("PERDIDA");
                 apuesta.setGanancia(0.0);
                 
-                Usuario user = usuarioRepo.findById(apuesta.getUsuario().getId()).orElse(null);
-                if (user != null) {
-                    user.setSaldo(user.getSaldo() - apuesta.getMonto());
-                    usuarioRepo.save(user);
-                    if (usuarioLogueado != null && user.getId().equals(usuarioLogueado.getId())) {
-                        usuarioLogueado.setSaldo(user.getSaldo());
+                if (apuesta.getUsuario() != null) {
+                    Usuario user = usuarioRepo.findById(apuesta.getUsuario().getId()).orElse(null);
+                    if (user != null) {
+                        user.setSaldo(user.getSaldo() - apuesta.getMonto());
+                        usuarioRepo.save(user);
+                        if (usuarioLogueado != null && user.getId().equals(usuarioLogueado.getId())) {
+                            usuarioLogueado.setSaldo(user.getSaldo());
+                        }
                     }
                 }
             }

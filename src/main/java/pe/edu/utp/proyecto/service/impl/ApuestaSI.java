@@ -4,10 +4,7 @@ import org.springframework.stereotype.Service;
 import pe.edu.utp.proyecto.modelo.Apuesta;
 import pe.edu.utp.proyecto.repository.ApuestaR;
 import pe.edu.utp.proyecto.service.interfaces.ApuestaServicio;
-import pe.edu.utp.proyecto.service.patron.state.Apuestaenproceso;
-import pe.edu.utp.proyecto.service.patron.state.Apuestafinalizada;
-import pe.edu.utp.proyecto.service.patron.state.Apuestapendiente;
-import pe.edu.utp.proyecto.service.patron.state.EstadoCancelado;
+
 @Service
 public class ApuestaSI implements ApuestaServicio { 
     private final ApuestaR repo;
@@ -33,7 +30,7 @@ public class ApuestaSI implements ApuestaServicio {
         existente.setTipo(l.getTipo());
         existente.setFecha(l.getFecha());
         existente.setEstado(l.getEstado());
-        existente.setHuboTicketApuesta(l.isHuboTicketApuesta());
+        existente.setHuboTicketApuesta(l.getHuboTicketApuesta());
         existente.setMonto(l.getMonto());
         existente.setUsuario(l.getUsuario());
         existente.setPartido(l.getPartido());
@@ -49,23 +46,20 @@ public class ApuestaSI implements ApuestaServicio {
     }
     @Override
     public Apuesta iniciarApuesta(Apuesta apuesta) {
-        apuesta.setEstadoApuesta(new Apuestapendiente());
-        apuesta.setEstado("PENDIENTE");
+        apuesta.setEstado("EN PROCESO");
         return repo.save(apuesta);
     }
     @Override
     public Apuesta marcarEnProgreso(String id) {
         Apuesta apuesta = buscarPorId(id);
         if (apuesta == null) return null;
-        apuesta.setEstadoApuesta(new Apuestaenproceso());
-        apuesta.setEstado("EN_PROGRESO");
+        apuesta.setEstado("EN PROCESO");
         return repo.save(apuesta);
     }
     @Override
     public Apuesta marcarFinalizada(String id) {
         Apuesta apuesta = buscarPorId(id);
         if (apuesta == null) return null;
-        apuesta.setEstadoApuesta(new Apuestafinalizada());
         apuesta.setEstado("FINALIZADA");
         return repo.save(apuesta);
     }
@@ -73,7 +67,6 @@ public class ApuestaSI implements ApuestaServicio {
     public Apuesta marcarCancelada(String id) {
         Apuesta apuesta = buscarPorId(id);
         if (apuesta == null) return null;
-        apuesta.setEstadoApuesta(new EstadoCancelado());
         apuesta.setEstado("CANCELADA");
         return repo.save(apuesta);
     }

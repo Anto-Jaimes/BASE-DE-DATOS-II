@@ -1,5 +1,5 @@
 package pe.edu.utp.proyecto.service.impl;
-import pe.edu.utp.proyecto.service.patron.observer.TicketApuestaEventoObserver;
+import pe.edu.utp.proyecto.service.patron.observer.TicketApuestaEvent;
 import pe.edu.utp.proyecto.modelo.TicketApuesta;
 import pe.edu.utp.proyecto.repository.TicketApuestaR;
 import pe.edu.utp.proyecto.service.interfaces.TicketApuestaServicio;
@@ -22,7 +22,7 @@ public class TicketApuestaSI implements TicketApuestaServicio{
     public TicketApuesta guardar(TicketApuesta v) {
 
         TicketApuesta nuevaTicketApuesta = repo.save(v);
-        publisher.publishEvent(new TicketApuestaEventoObserver(this, "Nueva ticket registrada por monto: " + v.getMonto()));
+        publisher.publishEvent(new TicketApuestaEvent(this, "Nueva ticket registrada por monto: " + v.getMonto()));
         return nuevaTicketApuesta;
     }
     @Override

@@ -6,6 +6,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import pe.edu.utp.proyecto.modelo.Usuario;
 import pe.edu.utp.proyecto.modelo.Partido;
+import pe.edu.utp.proyecto.modelo.Apuesta;
 import pe.edu.utp.proyecto.service.interfaces.ApuestaServicio;
 import pe.edu.utp.proyecto.service.interfaces.PartidoServicio;
 import pe.edu.utp.proyecto.service.interfaces.UsuarioServicio;
@@ -37,6 +38,22 @@ public class HomeController {
         model.addAttribute("listaPartidos", partidos);
         model.addAttribute("todosLosUsuarios", usuarioServicio.listar());
         model.addAttribute("todasLasApuestas", apuestaServicio.listar());
+        
+        model.addAttribute("todasLasApuestas", apuestaServicio.listar());
+        
+        List<Apuesta> todas = apuestaServicio.listar();
+        java.util.Set<String> usersWithBets = todas.stream()
+                .filter(a -> a.getUsuario() != null)
+                .map(a -> a.getUsuario().getId())
+                .collect(java.util.stream.Collectors.toSet());
+                
+        List<Usuario> usuariosSinApuestas = usuarioServicio.listar().stream()
+                .filter(u -> !"ADMIN".equals(u.getRol()))
+                .filter(u -> !usersWithBets.contains(u.getId()))
+                .collect(java.util.stream.Collectors.toList());
+                
+        model.addAttribute("usuariosSinApuestas", usuariosSinApuestas);
+        
         for (Partido p : partidos) {
             String key = getMatchKey(p.getEquipo1(), p.getEquipo2());
             model.addAttribute(key, p);
@@ -45,15 +62,9 @@ public class HomeController {
             boolean isAdmin = "ADMIN".equals(usuarioLogueado.getRol());
             model.addAttribute("isAdmin", isAdmin);
             
-            if (isAdmin) {
-                model.addAttribute("misApuestas", apuestaServicio.listar()); // Admin ve todo
-            } else {
-                model.addAttribute("misApuestas", apuestaServicio.listarPorUsuario(usuarioLogueado.getId()));
-            }
             BitacoraSingleton.getInstancia().registrar((isAdmin ? "Administrador" : "Cliente") + " ingresó al Centro de Apuestas Mundial 2026: " + usuarioLogueado.getCodigo());
         } else {
             model.addAttribute("isAdmin", false);
-            model.addAttribute("misApuestas", new ArrayList<>());
         }
 
         return "index";

@@ -4,10 +4,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class BitacoraSingleton {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BitacoraSingleton.class);
+
 
     private static BitacoraSingleton instancia;
     private List<String> historial;

@@ -35,12 +35,23 @@ public class UsuarioSI implements UsuarioServicio {
         Usuario existente = repo.findById(id).orElse(null);
         if (existente == null) return null;
 
+        existente.setTipoDocumento(o.getTipoDocumento());
+        existente.setDni(o.getDni());
         existente.setNombre(o.getNombre());
         existente.setApellido(o.getApellido());
+        existente.setFechaNacimiento(o.getFechaNacimiento());
+        existente.setGenero(o.getGenero());
+        existente.setDireccion(o.getDireccion());
+        existente.setDepartamento(o.getDepartamento());
+        existente.setProvincia(o.getProvincia());
+        existente.setDistrito(o.getDistrito());
+        existente.setTelefono(o.getTelefono());
         existente.setCodigo(o.getCodigo());
         existente.setTotalTicketApuestas(o.getTotalTicketApuestas());
         existente.setEmail(o.getEmail());
-        existente.setContrasena(o.getContrasena());
+        if (o.getContrasena() != null && !o.getContrasena().isEmpty()) {
+            existente.setContrasena(o.getContrasena());
+        }
         existente.setSaldo(o.getSaldo());
 
         return repo.save(existente);
@@ -49,5 +60,10 @@ public class UsuarioSI implements UsuarioServicio {
     @Override
     public void eliminar(String id) {
         repo.deleteById(id);
+    }
+
+    @Override
+    public Usuario buscarPorDni(String dni) {
+        return repo.findByDni(dni).orElse(null);
     }
 }

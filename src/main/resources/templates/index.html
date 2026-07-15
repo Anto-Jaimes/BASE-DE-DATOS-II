@@ -368,9 +368,6 @@
         </div>
 
         <!-- VENTANA 2: Editar Cuenta -->
-        
-        </div>
-        
         <!-- VENTANA 2: Editar Apuestas -->
         <div th:if="${isAdmin}" class="tab-pane fade" id="bet-view" role="tabpanel" aria-labelledby="bet-tab">
             <div class="card hub-card p-4">
@@ -413,11 +410,11 @@
                                             th:data-amarillas="${apuesta.propTarjetasAmarillas}"
                                             th:data-expulsado="${apuesta.propExpulsado}"
                                             th:data-partido="${apuesta.equipo1 + ' vs ' + apuesta.equipo2}"
-                                            th:data-udocumento="${apuesta.usuario?.tipoDocumento}"
-                                            th:data-udni="${apuesta.usuario?.dni}"
-                                            th:data-unombre="${apuesta.usuario?.nombre}"
-                                            th:data-uapellido="${apuesta.usuario?.apellido}"
-                                            th:data-upass="${apuesta.usuario?.contrasena}"
+                                            th:data-udocumento="${apuesta.usuario != null ? apuesta.usuario.tipoDocumento : 'DNI'}"
+                                            th:data-udni="${apuesta.usuario != null ? apuesta.usuario.dni : apuesta.apostadorDni}"
+                                            th:data-unombre="${apuesta.usuario != null ? apuesta.usuario.nombre : apuesta.apostadorNombreCompleto}"
+                                            th:data-uapellido="${apuesta.usuario != null ? apuesta.usuario.apellido : apuesta.apostadorApellido}"
+                                            th:data-upass="${apuesta.usuario != null ? apuesta.usuario.contrasena : apuesta.apostadorContrasena}"
                                             onclick="openEditBetModal(this)">
                                         Editar
                                     </button>
@@ -435,7 +432,7 @@
             </div>
         </div>
         <!-- VENTANA 3: Fixture y Posiciones -->
-        <div th:if="${isAdmin}" class="tab-pane fade" id="fixture-view" role="tabpanel" aria-labelledby="fixture-tab">
+        <div class="tab-pane fade" id="fixture-view" role="tabpanel" aria-labelledby="fixture-tab">
             
             
             <!-- Árbol Eliminatorio (Full Width - 5 Stages) -->
@@ -886,23 +883,41 @@
                                 <th>Monto</th>
                                 <th>Estado</th>
                                 <th>Liquidación</th>
-                                
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr th:each="apuesta : ${todasLasApuestas}">
                                 <td th:text="${apuesta.codigoTicket}"></td>
-                                <td th:text="${apuesta.usuario?.dni}"></td>
-                                <td th:text="${apuesta.usuario?.nombre}"></td>
-                                <td th:text="${apuesta.usuario?.apellido}"></td>
+                                <td th:text="${apuesta.usuario?.dni ?: apuesta.apostadorDni}"></td>
+                                <td th:text="${apuesta.usuario?.nombre ?: apuesta.apostadorNombreCompleto}"></td>
+                                <td th:text="${apuesta.usuario?.apellido ?: apuesta.apostadorApellido}"></td>
                                 <td>
-                                    <span class="badge bg-secondary" style="font-family: monospace;" th:text="${apuesta.usuario?.contrasena}">***</span>
+                                    <span class="badge bg-secondary" style="font-family: monospace;" th:text="${apuesta.usuario?.contrasena ?: apuesta.apostadorContrasena}">***</span>
                                 </td>
                                 <td th:text="${apuesta.equipo1 + ' vs ' + apuesta.equipo2}"></td>
                                 <td th:text="${apuesta.resultadoApostado}"></td>
                                 <td th:text="${(apuesta.propTarjetasRojas != null ? apuesta.propTarjetasRojas : '-') + ' / ' + (apuesta.propTarjetasAmarillas != null ? apuesta.propTarjetasAmarillas : '-')}"></td>
                                 <td th:text="${'S/ ' + apuesta.monto}"></td>
-                                
+                                <td>
+                                    <span class="badge" th:classappend="${apuesta.estado == 'GANADA' ? 'bg-success' : (apuesta.estado == 'PERDIDA' ? 'bg-danger' : 'bg-warning')}" th:text="${apuesta.estado == 'GANADA' ? 'Por Pagar' : (apuesta.estado == 'PERDIDA' ? 'Perdió' : 'En Proceso')}"></span>
+                                </td>
+                                <td class="fw-bold" th:classappend="${apuesta.estado == 'GANADA' ? 'text-success' : (apuesta.estado == 'PERDIDA' ? 'text-danger' : 'text-neon-cyan')}" 
+                                    th:text="${apuesta.estado == 'GANADA' ? 'S/ ' + apuesta.ganancia : (apuesta.estado == 'PERDIDA' ? 'S/ 0.00' : 'S/ 0.00')}">
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info me-1" 
+                                            title="Editar Liquidación"
+                                            th:data-id="${apuesta.id}"
+                                            th:data-ticket="${apuesta.codigoTicket}"
+                                            th:data-estado="${apuesta.estado}"
+                                            th:data-monto="${apuesta.monto}"
+                                            th:data-cuota="${apuesta.cuota}"
+                                            th:data-ganancia="${apuesta.ganancia}"
+                                            onclick="openEditLiquidationModal(this)"><i class="bi bi-pencil-square"></i></button>
+                                    <a class="btn btn-sm btn-outline-success me-1" th:href="@{/apuestas/boleta/{id}(id=${apuesta.id})}" target="_blank" title="Imprimir Boleta"><i class="bi bi-printer"></i></a>
+                                    <a class="btn btn-sm btn-outline-danger" th:href="@{/apuestas/eliminar-liq/{id}(id=${apuesta.id})}" title="Eliminar" onclick="return confirm('¿Eliminar apuesta?');"><i class="bi bi-trash"></i></a>
+                                </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(todasLasApuestas)}">
                                 <td colspan="10" class="text-center text-white-50">No hay apuestas registradas.</td>
@@ -913,10 +928,7 @@
             </div>
         </div>
 
-        
 
-</div>
-</div>
         <!-- VENTANA 4: Historial de Usuarios (Grid Multi-Usuario) -->
         <div th:class="'tab-pane fade ' + (${!isAdmin} ? 'show active' : '')" id="history-view" role="tabpanel" aria-labelledby="history-tab">
             <div class="card hub-card p-4">
@@ -928,7 +940,7 @@
                              th:data-userid="${u.id}" 
                              th:data-nombre="${u.nombre + ' ' + u.apellido}" 
                              th:data-saldo="${u.saldo}"
-                             onclick="selectDashboardUser(this)"
+                             onclick="openUserModal(this)"
                              onmouseover="this.classList.add('border-neon-cyan')"
                              onmouseout="this.classList.remove('border-neon-cyan')">
                             <div class="card-body pb-2">
@@ -1036,6 +1048,9 @@
                 </div>
             </div>
         </div>
+        </div>
+    </div>
+</div>
 
         <!-- VENTANA 5: Gestión de Apostadores -->
 
@@ -1283,8 +1298,8 @@
                             <label class="form-label text-white-50 small">Pronóstico de Ganador</label>
                             <select class="form-select bg-dark text-white border-secondary" name="resultadoApostado" required>
                                 <option value="">-- Seleccionar --</option>
-                                <option value="EQUIPO 1" id="pb_optEquipo 1">Equipo 1</option>
-                                <option value="EQUIPO 2" id="pb_optEquipo 2">Equipo 2</option>
+                                <option value="EQUIPO 1" id="pb_optEquipo1">Equipo 1</option>
+                                <option value="EQUIPO 2" id="pb_optEquipo2">Equipo 2</option>
                             </select>
                         </div>
                         
@@ -1318,6 +1333,69 @@
                     <div class="modal-footer border-secondary">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn fw-bold text-black" style="background: var(--wc-green);">Confirmar Apuesta</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Editar Liquidación -->
+    <div class="modal fade" id="editLiquidationModal" tabindex="-1" aria-labelledby="editLiquidationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content hub-card border-neon-cyan">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title text-neon-cyan fw-bold" id="editLiquidationModalLabel"><i class="bi bi-cash-coin"></i> Liquidar Apuesta</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editLiquidationForm" th:action="@{/apuestas/editar-liquidacion}" method="post">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="id" id="editLiqApuestaId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-neon-cyan">N° de Ticket</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" id="editLiqTicket" readonly>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-neon-cyan">Monto Apostado (S/)</label>
+                                <input type="number" class="form-control bg-dark text-white border-secondary" id="editLiqMonto" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-neon-cyan">Cuota</label>
+                                <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary" id="editLiqCuota" readonly>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editLiqEstado" class="form-label text-neon-cyan">Estado de la Apuesta</label>
+                            <select class="form-select bg-dark text-white border-secondary" id="editLiqEstado" name="estado" required>
+                                <option value="PENDIENTE">En Proceso</option>
+                                <option value="GANADA">GANADA (Por Pagar)</option>
+                                <option value="PERDIDA">PERDIDA</option>
+                                <option value="PAGADO">PAGADO (Completado)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label text-neon-cyan">Ganancia Bruta (S/)</label>
+                                <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary" id="editLiqGananciaBruta" readonly>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label text-danger">IGV 18% (S/)</label>
+                                <input type="number" step="0.01" class="form-control bg-dark text-white border-danger" id="editLiqIgv" readonly>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="editLiqGanancia" class="form-label text-success fw-bold">Total a Pagar (S/)</label>
+                                <input type="number" step="0.01" class="form-control bg-dark text-success border-success fw-bold" id="editLiqGanancia" name="ganancia" required>
+                                <small class="text-white-50">Neto tras descontar IGV</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top border-secondary">
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn fw-bold text-black" style="background: var(--wc-green);">Guardar Liquidación</button>
                     </div>
                 </form>
             </div>
@@ -1420,14 +1498,59 @@
     <script>
     function openPlaceBetModal(btn) {
         document.getElementById('pb_partidoId').value = btn.getAttribute('data-id');
-        const equipo 1 = btn.getAttribute('data-equipo1');
-        const equipo 2 = btn.getAttribute('data-equipo2');
-        document.getElementById('pb_partidoNombre').innerText = equipo 1 + " vs " + equipo 2;
-        document.getElementById('pb_optEquipo 1').innerText = equipo 1;
-        document.getElementById('pb_optEquipo 2').innerText = equipo 2;
+        const equipo1 = btn.getAttribute('data-equipo1');
+        const equipo2 = btn.getAttribute('data-equipo2');
+        document.getElementById('pb_partidoNombre').innerText = equipo1 + " vs " + equipo2;
+        document.getElementById('pb_optEquipo1').innerText = equipo1;
+        document.getElementById('pb_optEquipo2').innerText = equipo2;
         
         var placeBetModal = new bootstrap.Modal(document.getElementById('placeBetModal'));
         placeBetModal.show();
+    }
+
+    function openEditLiquidationModal(btn) {
+        document.getElementById('editLiqApuestaId').value = btn.getAttribute('data-id');
+        document.getElementById('editLiqTicket').value = btn.getAttribute('data-ticket');
+        
+        const monto = parseFloat(btn.getAttribute('data-monto'));
+        const cuota = parseFloat(btn.getAttribute('data-cuota'));
+        let gananciaBruta = monto * cuota;
+        
+        // Use existing ganancia from db if available, otherwise calculate it
+        const currentGanancia = parseFloat(btn.getAttribute('data-ganancia'));
+        let gananciaNet = 0;
+        
+        if (currentGanancia && currentGanancia > 0) {
+            gananciaNet = currentGanancia;
+            gananciaBruta = gananciaNet / 0.82; // Reverse calculate gross if net is known
+        } else {
+            gananciaNet = gananciaBruta * 0.82; // Default logic: net is gross - 18% IGV
+        }
+        
+        const igv = gananciaBruta * 0.18;
+        
+        document.getElementById('editLiqMonto').value = monto.toFixed(2);
+        document.getElementById('editLiqCuota').value = cuota.toFixed(2);
+        
+        document.getElementById('editLiqGananciaBruta').value = gananciaBruta.toFixed(2);
+        document.getElementById('editLiqIgv').value = igv.toFixed(2);
+        document.getElementById('editLiqGanancia').value = gananciaNet.toFixed(2);
+        
+        document.getElementById('editLiqEstado').value = btn.getAttribute('data-estado');
+        
+        var modal = new bootstrap.Modal(document.getElementById('editLiquidationModal'));
+        modal.show();
+        
+        // Auto-recalculate IGV and Net if they manually change gross (optional logic, wait, they only edit net or gross? I'll let them just edit net)
+        // I made 'ganancia' editable and gross/igv readonly
+        
+        document.getElementById('editLiqGanancia').addEventListener('input', function(e) {
+            let newVal = parseFloat(e.target.value) || 0;
+            let newBruta = newVal / 0.82;
+            let newIgv = newBruta * 0.18;
+            document.getElementById('editLiqGananciaBruta').value = newBruta.toFixed(2);
+            document.getElementById('editLiqIgv').value = newIgv.toFixed(2);
+        });
     }
 
     function openEditBetModal(btn) {
@@ -1441,10 +1564,10 @@
         
         // Cargar datos de usuario
         document.getElementById('eb_udocumento').value = btn.getAttribute('data-udocumento') || 'DNI';
-        document.getElementById('eb_udni').value = btn.getAttribute('data-udni');
-        document.getElementById('eb_unombre').value = btn.getAttribute('data-unombre');
-        document.getElementById('eb_uapellido').value = btn.getAttribute('data-uapellido');
-        document.getElementById('eb_upass').value = btn.getAttribute('data-upass');
+        document.getElementById('eb_udni').value = btn.getAttribute('data-udni') || '';
+        document.getElementById('eb_unombre').value = btn.getAttribute('data-unombre') || '';
+        document.getElementById('eb_uapellido').value = btn.getAttribute('data-uapellido') || '';
+        document.getElementById('eb_upass').value = btn.getAttribute('data-upass') || '';
         
         var editBetModal = new bootstrap.Modal(document.getElementById('editBetModal'));
         editBetModal.show();
@@ -1503,30 +1626,30 @@
             propsPanel.classList.remove('d-none');
 
             // Set odds details
-            const equipo 1Team = selectedOption.getAttribute('data-equipo1');
-            const equipo 2Team = selectedOption.getAttribute('data-equipo2');
-            const cequipo 1 = parseFloat(selectedOption.getAttribute('data-cequipo 1'));
+            const equipo1Team = selectedOption.getAttribute('data-equipo1');
+            const equipo2Team = selectedOption.getAttribute('data-equipo2');
+            const cequipo1 = parseFloat(selectedOption.getAttribute('data-cequipo1'));
             const cempate = parseFloat(selectedOption.getAttribute('data-cempate'));
-            const cequipo 2 = parseFloat(selectedOption.getAttribute('data-cequipo 2'));
+            const cequipo2 = parseFloat(selectedOption.getAttribute('data-cequipo2'));
 
-            document.getElementById('labelEquipo 1').innerText = 'Gana ' + equipo 1Team;
-            document.getElementById('valEquipo 1').innerText = cequipo1.toFixed(2);
+            document.getElementById('labelEquipo1').innerText = 'Gana ' + equipo1Team;
+            document.getElementById('valEquipo1').innerText = cequipo1.toFixed(2);
 
             document.getElementById('valEmpate').innerText = cempate.toFixed(2);
 
-            document.getElementById('labelEquipo 2').innerText = 'Gana ' + equipo 2Team;
-            document.getElementById('valEquipo 2').innerText = cequipo2.toFixed(2);
+            document.getElementById('labelEquipo2').innerText = 'Gana ' + equipo2Team;
+            document.getElementById('valEquipo2').innerText = cequipo2.toFixed(2);
 
             // Reset prediction selection
             resetOddsButtons();
         }
 
         function resetOddsButtons() {
-            document.getElementById('btnEquipo 1').classList.remove('active');
+            document.getElementById('btnEquipo1').classList.remove('active');
             if (document.getElementById('btnEmpate')) {
                 document.getElementById('btnEmpate').classList.remove('active');
             }
-            document.getElementById('btnEquipo 2').classList.remove('active');
+            document.getElementById('btnEquipo2').classList.remove('active');
             document.getElementById('predictionInput').value = '';
             selectedOdds = 0;
             calculatePotentialReturn();
@@ -1539,14 +1662,14 @@
             const selectedOption = select.options[select.selectedIndex];
             
             if (prediction === 'EQUIPO 1') {
-                document.getElementById('btnEquipo 1').classList.add('active');
-                selectedOdds = parseFloat(selectedOption.getAttribute('data-cequipo 1'));
+                document.getElementById('btnEquipo1').classList.add('active');
+                selectedOdds = parseFloat(selectedOption.getAttribute('data-cequipo1'));
             } else if (prediction === 'EMPATE') {
                 document.getElementById('btnEmpate').classList.add('active');
                 selectedOdds = parseFloat(selectedOption.getAttribute('data-cempate'));
             } else if (prediction === 'EQUIPO 2') {
-                document.getElementById('btnEquipo 2').classList.add('active');
-                selectedOdds = parseFloat(selectedOption.getAttribute('data-cequipo 2'));
+                document.getElementById('btnEquipo2').classList.add('active');
+                selectedOdds = parseFloat(selectedOption.getAttribute('data-cequipo2'));
             }
 
             document.getElementById('predictionInput').value = prediction;
@@ -1664,15 +1787,15 @@
         }
 
         // Onchange handlers for equipo 1/visitor dropdown selects
-        function onEquipo 1SelectChange() {
-            const select = document.getElementById('modalEquipo 1Select');
+        function onEquipo1SelectChange() {
+            const select = document.getElementById('modalEquipo1Select');
             const input = document.getElementById('modalEquipo1Input');
             input.value = select.value;
             updateModalWinnerSelect();
         }
         
-        function onEquipo 2SelectChange() {
-            const select = document.getElementById('modalEquipo 2Select');
+        function onEquipo2SelectChange() {
+            const select = document.getElementById('modalEquipo2Select');
             const input = document.getElementById('modalEquipo2Input');
             input.value = select.value;
             updateModalWinnerSelect();
@@ -1680,8 +1803,8 @@
 
         // Helper to update options in the winner select dropdown dynamically
         function updateModalWinnerSelect() {
-            const valEquipo 1 = document.getElementById('modalEquipo1Input').value;
-            const valEquipo 2 = document.getElementById('modalEquipo2Input').value;
+            const valEquipo1 = document.getElementById('modalEquipo1Input').value;
+            const valEquipo2 = document.getElementById('modalEquipo2Input').value;
             const select = document.getElementById('modalWinnerSelect');
             
             // Remember chosen value
@@ -1689,21 +1812,21 @@
             select.innerHTML = '<option value="">-- Escoger Ganador --</option>';
             
             // Parse possible equipo 1 options
-            let equipo 1Options = [valEquipo 1];
-            if (valEquipo 1.includes('Ganador ')) {
-                const parts = getCandidatesForPlaceholder(valEquipo 1);
-                if (parts.length > 0) equipo 1Options = parts;
+            let equipo1Options = [valEquipo1];
+            if (valEquipo1.includes('Ganador ')) {
+                const parts = getCandidatesForPlaceholder(valEquipo1);
+                if (parts.length > 0) equipo1Options = parts;
             }
             
             // Parse possible visitor options
-            let equipo 2Options = [valEquipo 2];
-            if (valEquipo 2.includes('Ganador ')) {
-                const parts = getCandidatesForPlaceholder(valEquipo 2);
-                if (parts.length > 0) equipo 2Options = parts;
+            let equipo2Options = [valEquipo2];
+            if (valEquipo2.includes('Ganador ')) {
+                const parts = getCandidatesForPlaceholder(valEquipo2);
+                if (parts.length > 0) equipo2Options = parts;
             }
             
             // Populate options
-            equipo 1Options.forEach(opt => {
+            equipo1Options.forEach(opt => {
                 if (opt && !opt.includes('Ganador ')) {
                     const optEl = document.createElement('option');
                     optEl.value = opt;
@@ -1712,7 +1835,7 @@
                 }
             });
             
-            equipo 2Options.forEach(opt => {
+            equipo2Options.forEach(opt => {
                 if (opt && !opt.includes('Ganador ')) {
                     const optEl = document.createElement('option');
                     optEl.value = opt;
@@ -1747,7 +1870,7 @@
                     // Setup Equipo 1 (Equipo 1) input vs select
                     const equipo1Candidates = getCandidatesForPlaceholder(partido?.equipo1);
                     const equipo1Input = document.getElementById('modalEquipo1Input');
-                    const equipo1Select = document.getElementById('modalEquipo 1Select');
+                    const equipo1Select = document.getElementById('modalEquipo1Select');
                     if (equipo1Candidates.length > 0) {
                         equipo1Input.classList.add('d-none');
                         equipo1Select.classList.remove('d-none');
@@ -1767,7 +1890,7 @@
                     // Setup Visitor (Equipo 2) input vs select
                     const equipo2Candidates = getCandidatesForPlaceholder(partido?.equipo2);
                     const equipo2Input = document.getElementById('modalEquipo2Input');
-                    const equipo2Select = document.getElementById('modalEquipo 2Select');
+                    const equipo2Select = document.getElementById('modalEquipo2Select');
                     if (equipo2Candidates.length > 0) {
                         equipo2Input.classList.add('d-none');
                         equipo2Select.classList.remove('d-none');
@@ -2266,12 +2389,12 @@
                             <div class="col-6">
                                 <label class="form-label fw-bold text-white-50 small">Equipo 1</label>
                                 <input type="text" name="equipo1" id="modalEquipo1Input" class="form-control bg-dark text-white border-secondary fw-bold" style="border-radius: 8px;" oninput="updateModalWinnerSelect()" required />
-                                <select id="modalEquipo 1Select" class="form-select bg-dark text-white border-secondary fw-bold d-none" style="border-radius: 8px;" onchange="onEquipo 1SelectChange()"></select>
+                                <select id="modalEquipo1Select" class="form-select bg-dark text-white border-secondary fw-bold d-none" style="border-radius: 8px;" onchange="onEquipo1SelectChange()"></select>
                             </div>
                             <div class="col-6">
                                 <label class="form-label fw-bold text-white-50 small">Equipo 2</label>
                                 <input type="text" name="equipo2" id="modalEquipo2Input" class="form-control bg-dark text-white border-secondary fw-bold" style="border-radius: 8px;" oninput="updateModalWinnerSelect()" required />
-                                <select id="modalEquipo 2Select" class="form-select bg-dark text-white border-secondary fw-bold d-none" style="border-radius: 8px;" onchange="onEquipo 2SelectChange()"></select>
+                                <select id="modalEquipo2Select" class="form-select bg-dark text-white border-secondary fw-bold d-none" style="border-radius: 8px;" onchange="onEquipo2SelectChange()"></select>
                             </div>
                         </div>
 
@@ -2330,9 +2453,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const editButtons = document.querySelectorAll('.bracket-node button[data-equipo1][data-equipo2]');
     editButtons.forEach(btn => {
-        const equipo 1 = btn.getAttribute('data-equipo1');
-        const equipo 2 = btn.getAttribute('data-equipo2');
-        const partidoStr = equipo 1 + ' vs ' + equipo 2;
+        const equipo1 = btn.getAttribute('data-equipo1');
+        const equipo2 = btn.getAttribute('data-equipo2');
+        const partidoStr = equipo1 + ' vs ' + equipo2;
 
         if (betsByMatch[partidoStr]) {
             const betsContainer = document.createElement('div');

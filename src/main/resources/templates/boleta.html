@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleta de Pago - GOLAZO</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Courier New', Courier, monospace; /* Estilo de boleta clásica */
+            color: #000;
+        }
+        .boleta-container {
+            max-width: 400px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border: 1px dashed #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .logo-text {
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .logo-text span {
+            color: #000; /* Boleta is usually b/w */
+        }
+        .header-info {
+            text-align: center;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 10px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #eee;
+        }
+        .row-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 3px;
+        }
+        .row-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #000;
+        }
+        .footer-info {
+            text-align: center;
+            font-size: 0.8rem;
+            margin-top: 30px;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+        }
+        
+        @media print {
+            body {
+                background-color: #fff;
+            }
+            .boleta-container {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="text-center mt-3 no-print">
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="bi bi-printer"></i> Imprimir Boleta
+        </button>
+        <button class="btn btn-secondary ms-2" onclick="window.close()">
+            Cerrar
+        </button>
+    </div>
+
+    <div class="boleta-container">
+        <!-- Logo -->
+        <div class="logo-text">GOLA<span>ZO</span></div>
+        
+        <div class="header-info">
+            Centro de Apuestas Deportivo<br>
+            RUC: 20123456789<br>
+            Av. Los Deportes 123, Lima - Perú<br>
+            <br>
+            <strong>TICKET N°:</strong> <span th:text="${apuesta.codigoTicket}"></span><br>
+            <strong>FECHA:</strong> <span th:text="${#temporals.format(apuesta.fecha, 'dd/MM/yyyy HH:mm')}"></span>
+        </div>
+
+        <div class="section-title">Datos del Cliente</div>
+        <div class="row-item">
+            <span>Nombre:</span>
+            <span th:text="${apuesta.usuario?.nombre ?: apuesta.apostadorNombreCompleto}"></span>
+        </div>
+        <div class="row-item">
+            <span>DNI:</span>
+            <span th:text="${apuesta.usuario?.dni ?: apuesta.apostadorDni}"></span>
+        </div>
+
+        <div class="section-title">Detalle de Apuesta</div>
+        <div class="row-item">
+            <span>Encuentro:</span>
+            <span th:text="${apuesta.equipo1 + ' vs ' + apuesta.equipo2}"></span>
+        </div>
+        <div class="row-item">
+            <span>Pronóstico:</span>
+            <span th:text="${apuesta.resultadoApostado}"></span>
+        </div>
+        <div class="row-item">
+            <span>Estado:</span>
+            <span th:text="${apuesta.estado}"></span>
+        </div>
+        <div class="row-item mt-2">
+            <span>Monto Apostado:</span>
+            <span th:text="${'S/ ' + #numbers.formatDecimal(apuesta.monto, 1, 2)}"></span>
+        </div>
+        <div class="row-item">
+            <span>Cuota:</span>
+            <span th:text="${#numbers.formatDecimal(apuesta.cuota, 1, 2)}"></span>
+        </div>
+
+        <div class="section-title">Liquidación</div>
+        <div class="row-item">
+            <span>Ganancia Bruta:</span>
+            <span th:text="${'S/ ' + #numbers.formatDecimal(gananciaBruta, 1, 2)}"></span>
+        </div>
+        <div class="row-item">
+            <span>IGV (18%):</span>
+            <span th:text="${'- S/ ' + #numbers.formatDecimal(igv, 1, 2)}"></span>
+        </div>
+        
+        <div class="row-total">
+            <span>TOTAL PAGADO:</span>
+            <span th:text="${'S/ ' + #numbers.formatDecimal(gananciaNeta, 1, 2)}"></span>
+        </div>
+
+        <div class="footer-info">
+            ¡Gracias por confiar en Golazo!<br>
+            Verifique su boleto antes de retirarse.<br>
+            El pago caduca a los 30 días.
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<script>
+    // Iniciar impresión automáticamente al cargar (opcional)
+    // window.onload = function() { window.print(); }
+</script>
+</body>
+</html>
