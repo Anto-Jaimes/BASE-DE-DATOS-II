@@ -1,10 +1,9 @@
 package pe.edu.utp.proyecto.service.impl;
-import pe.edu.utp.proyecto.modelo.Partido;
+import java.util.List;
 import pe.edu.utp.proyecto.modelo.Plataforma;
 import pe.edu.utp.proyecto.repository.Plataformarepositorio;
 import pe.edu.utp.proyecto.service.interfaces.PlataformaServicio;
 import org.springframework.stereotype.Service;
-import java.util.List;
 @Service
 public class IvrSI implements PlataformaServicio {
 

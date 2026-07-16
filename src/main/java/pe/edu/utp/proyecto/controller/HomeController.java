@@ -12,7 +12,6 @@ import pe.edu.utp.proyecto.service.interfaces.PartidoServicio;
 import pe.edu.utp.proyecto.service.interfaces.UsuarioServicio;
 import pe.edu.utp.proyecto.service.patron.singleton.BitacoraSingleton;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -58,23 +57,19 @@ public class HomeController {
             String key = getMatchKey(p.getEquipo1(), p.getEquipo2());
             model.addAttribute(key, p);
         }
-        if (usuarioLogueado != null) {
-            boolean isAdmin = "ADMIN".equals(usuarioLogueado.getRol());
-            model.addAttribute("isAdmin", isAdmin);
-            
-            BitacoraSingleton.getInstancia().registrar((isAdmin ? "Administrador" : "Cliente") + " ingresó al Centro de Apuestas Mundial 2026: " + usuarioLogueado.getCodigo());
-        } else {
-            model.addAttribute("isAdmin", false);
-        }
+        boolean isAdmin = "ADMIN".equals(usuarioLogueado.getRol());
+        model.addAttribute("isAdmin", isAdmin);
+        
+        BitacoraSingleton.getInstancia().registrar((isAdmin ? "Administrador" : "Cliente") + " ingresó al Centro de Apuestas Mundial 2026: " + usuarioLogueado.getCodigo());
 
         return "index";
     }
 
     private String getMatchKey(String local, String visitante) {
         return (local + "_" + visitante)
-                .replaceAll(" ", "")
-                .replaceAll("\\.", "")
-                .replaceAll("/", "_");
+                .replace(" ", "")
+                .replace("\\.", "")
+                .replace("/", "_");
     }
 
 }

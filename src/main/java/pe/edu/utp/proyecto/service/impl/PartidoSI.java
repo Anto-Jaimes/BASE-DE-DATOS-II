@@ -31,7 +31,7 @@ public class PartidoSI implements PartidoServicio {
         this.usuarioRepo = usuarioRepo;
     }
     public List<Partido> listar() {
-        return repo.findAll();
+        return repo.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
     }
     @Override
     public Partido guardar(Partido c){
@@ -60,7 +60,7 @@ public class PartidoSI implements PartidoServicio {
 
     @Override
     public Usuario resolverYProcesarPartido(Partido partido, String ganadorDeterminado, Usuario usuarioLogueado) {
-        if (ganadorDeterminado != null && !ganadorDeterminado.trim().isEmpty()) {
+        if (ganadorDeterminado != null && !ganadorDeterminado.trim().isEmpty() && !ganadorDeterminado.equalsIgnoreCase("Escoger Ganador")) {
             if (ganadorDeterminado.equalsIgnoreCase("EQUIPO 1") || ganadorDeterminado.equalsIgnoreCase("EQUIPO 2") || ganadorDeterminado.equalsIgnoreCase("EMPATE")) {
                 usuarioLogueado = resolverYProcesarApuestas(partido, ganadorDeterminado, usuarioLogueado);
                 avanzarGanadorAlSiguientePartido(partido, ganadorDeterminado);
@@ -68,7 +68,9 @@ public class PartidoSI implements PartidoServicio {
                 usuarioLogueado = resolveBackwards(ganadorDeterminado, partido, usuarioLogueado);
             }
         } else {
+            partido.setGanador("");
             actualizar(partido.getId(), partido);
+            revertirAvanceAlSiguientePartido(partido);
         }
         return usuarioLogueado;
     }
@@ -140,6 +142,58 @@ public class PartidoSI implements PartidoServicio {
         return usuarioLogueado;
     }
 
+    private void revertirAvanceAlSiguientePartido(Partido partidoActual) {
+        List<Partido> todos = listar();
+        int indexActual = -1;
+        for (int i = 0; i < todos.size(); i++) {
+            if (todos.get(i).getId().equals(partidoActual.getId())) {
+                indexActual = i;
+                break;
+            }
+        }
+
+        if (indexActual == -1) return;
+
+        int nextIndex = -1;
+        boolean esEquipo1 = true;
+        boolean esSemifinal = false;
+        
+        if (indexActual < OCTAVOS_INICIO) { 
+            nextIndex = OCTAVOS_INICIO + (indexActual / 2);
+            esEquipo1 = (indexActual % 2 == 0);
+        } else if (indexActual >= OCTAVOS_INICIO && indexActual <= OCTAVOS_FIN) { 
+            nextIndex = CUARTOS_INICIO + ((indexActual - OCTAVOS_INICIO) / 2);
+            esEquipo1 = ((indexActual - OCTAVOS_INICIO) % 2 == 0);
+        } else if (indexActual >= CUARTOS_INICIO && indexActual <= CUARTOS_FIN) { 
+            nextIndex = SEMIS_INICIO + ((indexActual - CUARTOS_INICIO) / 2);
+            esEquipo1 = ((indexActual - CUARTOS_INICIO) % 2 == 0);
+        } else if (indexActual >= SEMIS_INICIO && indexActual <= SEMIS_FIN) { 
+            esSemifinal = true;
+            nextIndex = FINAL_IDX; 
+            esEquipo1 = ((indexActual - SEMIS_INICIO) % 2 == 0);
+        }
+
+        if (nextIndex != -1 && nextIndex < todos.size()) {
+            Partido nextPartido = todos.get(nextIndex);
+            if (esEquipo1) {
+                nextPartido.setEquipo1("Por confirmar");
+            } else {
+                nextPartido.setEquipo2("Por confirmar");
+            }
+            actualizar(nextPartido.getId(), nextPartido);
+
+            if (esSemifinal && todos.size() > TERCER_PUESTO_IDX) {
+                Partido tercerPuesto = todos.get(TERCER_PUESTO_IDX);
+                if (esEquipo1) {
+                    tercerPuesto.setEquipo1("Por confirmar");
+                } else {
+                    tercerPuesto.setEquipo2("Por confirmar");
+                }
+                actualizar(tercerPuesto.getId(), tercerPuesto);
+            }
+        }
+    }
+
     private void avanzarGanadorAlSiguientePartido(Partido partidoActual, String ganadorSeleccionado) {
         String equipoGanador = ganadorSeleccionado.equalsIgnoreCase("EQUIPO 1") ? partidoActual.getEquipo1() : 
                                (ganadorSeleccionado.equalsIgnoreCase("EQUIPO 2") ? partidoActual.getEquipo2() : null);
@@ -161,7 +215,7 @@ public class PartidoSI implements PartidoServicio {
         boolean esEquipo1 = true;
         boolean esSemifinal = false;
         
-        if (indexActual >= 0 && indexActual < OCTAVOS_INICIO) { 
+        if (indexActual < OCTAVOS_INICIO) { 
             nextIndex = OCTAVOS_INICIO + (indexActual / 2);
             esEquipo1 = (indexActual % 2 == 0);
         } else if (indexActual >= OCTAVOS_INICIO && indexActual <= OCTAVOS_FIN) { 
