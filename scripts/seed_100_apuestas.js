@@ -7,7 +7,7 @@ print("Iniciando carga masiva de datos (100 Usuarios, Fixture Hosts, Analítica)
 
 // 1. Limpiar colecciones
 db.usuarios.drop();
-db.partidos.drop(); // Borramos partidos para forzar a que sean sedes oficiales
+db.partidos.drop(); 
 db.apuestas.drop();
 
 // 2. CREAR 100 USUARIOS
@@ -19,12 +19,11 @@ for (var i = 1; i <= 100; i++) {
     usuariosDemo.push({
         nombre: randomName,
         codigo: "USR" + (1000 + i),
-        saldo: 5.00, // Todos los usuarios inician con 5 soles
+        saldo: 5.00, 
         rol: "USER",
         _class: "pe.edu.utp.proyecto.modelo.Usuario"
     });
 }
-// Hacer a Antonela la Administradora
 usuariosDemo[0].nombre = "Antonela Jaimes"; 
 usuariosDemo[0].rol = "ADMIN";
 
@@ -41,14 +40,13 @@ var partidosDemo = [];
 for(var i = 1; i <= 20; i++) {
     var host = anfitriones[Math.floor(Math.random() * anfitriones.length)];
     var visit = visitantes[Math.floor(Math.random() * visitantes.length)];
-    // Fecha y hora del partido aleatoria (Mes de Junio)
     var day = Math.floor(Math.random() * 20) + 10;
     var hora = (Math.floor(Math.random() * 8) + 12) + ":00"; 
     
     partidosDemo.push({
         equipo1: host,
         equipo2: visit,
-        fecha: day + "-06-2026 " + hora, // ej: 14-06-2026 15:00
+        fecha: day + "-06-2026 " + hora,
         deporte: "Fútbol",
         estadio: "Estadio " + host,
         cuotaEquipo1: parseFloat((Math.random() * 2 + 1.2).toFixed(2)), 
@@ -60,39 +58,57 @@ for(var i = 1; i <= 20; i++) {
 }
 db.partidos.insertMany(partidosDemo);
 var partidosGuardados = db.partidos.find().toArray();
-print("=> " + partidosDemo.length + " partidos creados con sus fechas (Los locales estrictamente son Sedes).");
+print("=> " + partidosDemo.length + " partidos creados con sus fechas.");
 
 
-// 4. CREAR 300 APUESTAS (Para que se vea bien la estadística de 100 usuarios)
+// 4. CREAR 500 APUESTAS EXACTAS
 var apuestas = [];
-var pronosticos = ["equipo1", "equipo2"];
 var estados = ["ACTIVO", "GANADA", "PERDIDA"];
 
-for (var i = 1; i <= 300; i++) {
+for (var i = 1; i <= 500; i++) {
     var randomUser = idsUsuarios[Math.floor(Math.random() * idsUsuarios.length)];
     var randomPartido = partidosGuardados[Math.floor(Math.random() * partidosGuardados.length)];
-    var pronostico = pronosticos[Math.floor(Math.random() * pronosticos.length)];
-    var cuotaPagada = pronostico === "equipo1" ? randomPartido.cuotaEquipo1 : randomPartido.cuotaEquipo2;
-    var randomMonto = Math.floor(Math.random() * 490) + 10; // Monto entre 10 y 500
     
+    // Seleccionar si apuesta al equipo1 o al equipo2
+    var seleccion = Math.random() < 0.5 ? "equipo1" : "equipo2";
+    
+    // Asignar cuota y el NOMBRE REAL del equipo para el pronóstico
+    var cuotaPagada = 1.0;
+    var nombreEquipoPronosticado = "";
+    
+    if (seleccion === "equipo1") {
+        cuotaPagada = randomPartido.cuotaEquipo1;
+        nombreEquipoPronosticado = randomPartido.equipo1; // Ejemplo: "México"
+    } else {
+        cuotaPagada = randomPartido.cuotaEquipo2;
+        nombreEquipoPronosticado = randomPartido.equipo2; // Ejemplo: "Alemania"
+    }
+    
+    var randomMonto = Math.floor(Math.random() * 490) + 10;
+    var estado = estados[Math.floor(Math.random() * estados.length)];
+    var ganancia = 0;
+    if (estado === "GANADA") {
+        ganancia = parseFloat((randomMonto * cuotaPagada).toFixed(2));
+    }
+
     apuestas.push({
         idUsuario: randomUser.valueOf().toString(),
         idPartido: randomPartido._id.valueOf().toString(),
         monto: randomMonto,
-        pronostico: pronostico,
+        pronostico: nombreEquipoPronosticado, // Guarda el país real (Ej: "Brasil")
         cuotaPagada: cuotaPagada,
-        estado: estados[Math.floor(Math.random() * estados.length)],
+        ganancia: ganancia,
+        estado: estado,
         _class: "pe.edu.utp.proyecto.modelo.Apuesta"
     });
 }
 db.apuestas.insertMany(apuestas);
-print("=> 300 Apuestas masivas generadas de manera aleatoria cruzando los 100 usuarios y los partidos.");
+print("=> 500 Apuestas masivas generadas (con pronóstico de País real).");
 
 print("\n==================================================");
 print("       ANALÍTICA Y CONSULTAS SOLICITADAS          ");
 print("==================================================");
 
-// Consulta 1: ¿Cuál fue el partido más apostado (por cantidad de tickets)?
 var partidoMasApostado = db.apuestas.aggregate([
     { $group: { _id: "$idPartido", totalTickets: { $sum: 1 }, totalDinero: { $sum: "$monto" } } },
     { $sort: { totalTickets: -1 } },
@@ -104,10 +120,9 @@ if (partidoMasApostado.length > 0) {
     var pData = db.partidos.findOne({_id: pId});
     print("1. PARTIDO MÁS APOSTADO (POR TICKETS):");
     print("   -> " + pData.equipo1 + " vs " + pData.equipo2 + " (Juega el: " + pData.fecha + ")");
-    print("   -> Recibió " + partidoMasApostado[0].totalTickets + " apuestas que sumaron S/ " + partidoMasApostado[0].totalDinero);
+    print("   -> Recibió " + partidoMasApostado[0].totalTickets + " apuestas sumando S/ " + partidoMasApostado[0].totalDinero);
 }
 
-// Consulta 2: ¿Qué usuario apostó más dinero en total? (El más ludópata)
 var usuarioMasApostador = db.apuestas.aggregate([
     { $group: { _id: "$idUsuario", totalApostado: { $sum: "$monto" }, cantidadTickets: { $sum: 1 } } },
     { $sort: { totalApostado: -1 } },
@@ -119,16 +134,21 @@ if (usuarioMasApostador.length > 0) {
     var uData = db.usuarios.findOne({_id: uId});
     print("\n2. EL USUARIO QUE APOSTÓ MÁS DINERO EN SUMA TOTAL:");
     print("   -> Nombre: " + uData.nombre + " (Código: " + uData.codigo + ")");
-    print("   -> Apostó un total de S/ " + usuarioMasApostador[0].totalApostado + " repartidos en " + usuarioMasApostador[0].cantidadTickets + " tickets distintos.");
+    print("   -> Apostó S/ " + usuarioMasApostador[0].totalApostado + " en " + usuarioMasApostador[0].cantidadTickets + " tickets.");
 }
 
-// Consulta 3: ¿Quién hizo la apuesta individual más grande? (La apuesta más cara)
-var apuestaMasCara = db.apuestas.find().sort({monto: -1}).limit(1).toArray();
-if (apuestaMasCara.length > 0) {
-    var uId2 = ObjectId(apuestaMasCara[0].idUsuario);
-    var uData2 = db.usuarios.findOne({_id: uId2});
-    print("\n3. LA APUESTA INDIVIDUAL MÁS CARA DEL SISTEMA:");
-    print("   -> " + uData2.nombre + " invirtió S/ " + apuestaMasCara[0].monto + " en un solo ticket, pronosticando que ganará el " + apuestaMasCara[0].pronostico + ".");
-}
+var usuarioMasGanador = db.apuestas.aggregate([
+    { $match: { estado: "GANADA" } },
+    { $group: { _id: "$idUsuario", totalGanado: { $sum: "$ganancia" }, ticketsGanados: { $sum: 1 } } },
+    { $sort: { totalGanado: -1 } },
+    { $limit: 1 }
+]).toArray();
 
+if (usuarioMasGanador.length > 0) {
+    var uId3 = ObjectId(usuarioMasGanador[0]._id);
+    var uData3 = db.usuarios.findOne({_id: uId3});
+    print("\n3. EL USUARIO QUE MÁS DINERO HA GANADO (APUESTAS ACERTADAS):");
+    print("   -> Nombre: " + uData3.nombre);
+    print("   -> Ganó S/ " + usuarioMasGanador[0].totalGanado.toFixed(2) + " tras acertar " + usuarioMasGanador[0].ticketsGanados + " tickets.");
+}
 print("==================================================");
